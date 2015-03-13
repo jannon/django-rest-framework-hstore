@@ -1,7 +1,7 @@
 from django.db import models
 from django.forms import widgets
 
-from rest_framework.fields import * 
+from rest_framework.fields import *
 from rest_framework.serializers import ModelSerializer
 
 from django_hstore.fields import DictionaryField
@@ -20,14 +20,14 @@ class HStoreSerializer(ModelSerializer):
     def __init__(self, *args, **kwargs):
         self.contribute_to_field_mapping()
         super(HStoreSerializer, self).__init__(*args, **kwargs)
-    
+
     def contribute_to_field_mapping(self):
         """
         add DictionaryField to field_mapping
         """
         # TODO: support ReferenceField
-        self.field_mapping[DictionaryField] = HStoreField
-        
+        self.serializer_field_mapping[DictionaryField] = HStoreField
+
     def get_field(self, model_field):
         """
         Creates a default instance of a basic non-relational field.
@@ -79,10 +79,10 @@ class HStoreSerializer(ModelSerializer):
             attributes = attribute_dict[model_field.__class__]
             for attribute in attributes:
                 kwargs.update({attribute: getattr(model_field, attribute)})
-        
+
         if model_field.__class__ == DictionaryField and model_field.schema:
             kwargs['schema'] = True
-        
+
         # === django-rest-framework-hstore specific ====
         # if available, use __basefield__ attribute instead of __class__
         # this will cause DRF to pick the correct DRF-field
@@ -92,29 +92,56 @@ class HStoreSerializer(ModelSerializer):
             return self.field_mapping[key](**kwargs)
         except KeyError:
             pass
-        
+
         try:
             return self.field_mapping[model_field.__class__.__name__](**kwargs)
         except KeyError:
             return ModelField(model_field=model_field, **kwargs)
-    
-    def restore_object(self, attrs, instance=None):
+
+        # DRF <= 2.4
+#     def restore_object(self, attrs, instance=None):
+#         """
+#         temporarily remove hstore virtual fields otherwise DRF considers them many2many
+#         """
+#         model = self.opts.model
+#         meta = self.opts.model._meta
+#         original_virtual_fields = list(meta.virtual_fields)  # copy
+#
+#         if hasattr(model, '_hstore_virtual_fields'):
+#             # remove hstore virtual fields from meta
+#             for field in model._hstore_virtual_fields.values():
+#                 meta.virtual_fields.remove(field)
+#
+#         instance = super(HStoreSerializer, self).restore_object(attrs, instance)
+#
+#         if hasattr(model, '_hstore_virtual_fields'):
+#             # restore original virtual fields
+#             meta.virtual_fields = original_virtual_fields
+#
+#         return instance
+
+    # DRF >= 3.0
+    def update(self, instance, validated_data):
         """
         temporarily remove hstore virtual fields otherwise DRF considers them many2many
         """
-        model = self.opts.model
-        meta = self.opts.model._meta
+        model = self.Meta.model
+        meta = self.Meta.model._meta
         original_virtual_fields = list(meta.virtual_fields)  # copy
-        
+
         if hasattr(model, '_hstore_virtual_fields'):
             # remove hstore virtual fields from meta
             for field in model._hstore_virtual_fields.values():
                 meta.virtual_fields.remove(field)
-            
-        instance = super(HStoreSerializer, self).restore_object(attrs, instance)
-        
+
+        instance = super(HStoreSerializer, self).update(instance, validated_data)
+
         if hasattr(model, '_hstore_virtual_fields'):
             # restore original virtual fields
             meta.virtual_fields = original_virtual_fields
-        
-        return instance
+
+            return instance
+
+    def create(self, validated_data):
+        model = self.Meta.model
+        return model.objects.create(**validated_data)
