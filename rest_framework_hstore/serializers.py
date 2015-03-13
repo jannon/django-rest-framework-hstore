@@ -140,8 +140,25 @@ class HStoreSerializer(ModelSerializer):
             # restore original virtual fields
             meta.virtual_fields = original_virtual_fields
 
-            return instance
+        return instance
 
     def create(self, validated_data):
+        """
+        temporarily remove hstore virtual fields otherwise DRF considers them many2many
+        """
         model = self.Meta.model
-        return model.objects.create(**validated_data)
+        meta = self.Meta.model._meta
+        original_virtual_fields = list(meta.virtual_fields)  # copy
+
+        if hasattr(model, '_hstore_virtual_fields'):
+            # remove hstore virtual fields from meta
+            for field in model._hstore_virtual_fields.values():
+                meta.virtual_fields.remove(field)
+
+        instance = super(HStoreSerializer, self).create(validated_data)
+
+        if hasattr(model, '_hstore_virtual_fields'):
+            # restore original virtual fields
+            meta.virtual_fields = original_virtual_fields
+
+        return instance
