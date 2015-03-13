@@ -5,6 +5,10 @@ from django.test import TestCase
 
 from .models import *
 from .serializers import *
+from django.core.urlresolvers import reverse
+from django.test.client import MULTIPART_CONTENT
+from rest_framework.test import APITestCase, APIRequestFactory
+from tests.views import SchemaDataBagViewSet
 
 
 class TestDjangoRestFrameworkHStore(TestCase):
@@ -147,6 +151,11 @@ class TestDjangoRestFrameworkHStore(TestCase):
         self.assertEqual(s['text'], '')
         self.assertEqual(s['choice'], 'choice1')
 
+
+class TestDjangoRestFrameworkHStoreAPI(APITestCase):
+    def setUp(self):
+        self.factory = APIRequestFactory()
+
     def test_hstore_serializer_api(self):
         response = self.client.get('/schemadatabag/')
         self.assertEqual(response.status_code, 200)
@@ -156,8 +165,8 @@ class TestDjangoRestFrameworkHStore(TestCase):
         self.assertContains(response, '<select')
         self.assertContains(response, 'type="checkbox"')
 
-    def test_hstore_serializer_api_create(self):
-        response = self.client.post('/schemadatabag/', {
+    def create_schema_data_bag(self):
+        response = self.client.post(reverse('schemadatabag-list'), {
             "name": "test create",
             "number": 2,
             "float": 2.2,
@@ -174,6 +183,10 @@ class TestDjangoRestFrameworkHStore(TestCase):
             "ip": "10.10.10.10",
             "url": "http://test.com"
         })
+        return response
+
+    def test_hstore_serializer_api_create(self):
+        response = self.create_schema_data_bag()
 
         self.assertEqual(response.status_code, 201)
 
@@ -194,43 +207,49 @@ class TestDjangoRestFrameworkHStore(TestCase):
         self.assertEqual(d.ip, '10.10.10.10')
         self.assertEqual(d.url, 'http://test.com')
 
-#     def test_hstore_serializer_api_create(self):
-#         response = self.client.post('/schemadatabag/', {
-#             "name": "test create",
-#             "number": 2,
-#             "float": 2.2,
-#             "boolean": True,
-#             "boolean_true": False,
-#             "char": "char",
-#             "text": "test create text",
-#             "choice": "choice2",
-#             "choice2": "choice1",
-#             "date": "2014-08-08",
-#             "datetime": "2014-08-08 14:10:53",
-#             "decimal": 1.0,
-#             "email": "test@test.com",
-#             "ip": "10.10.10.10",
-#             "url": "http://test.com"
-#         })
-#
-#         self.assertEqual(response.status_code, 201)
-#
-#         d = SchemaDataBag.objects.last()
-#         self.assertEqual(d.name, 'test create')
-#         self.assertEqual(d.number, 2)
-#         self.assertEqual(d.float, 2.2)
-#         self.assertEqual(d.boolean, True)
-#         self.assertEqual(d.boolean_true, False)
-#         self.assertEqual(d.char, 'char')
-#         self.assertEqual(d.text, 'test create text')
-#         self.assertEqual(d.choice, 'choice2')
-#         self.assertEqual(d.choice2, 'choice1')
-#         self.assertEqual(str(d.date), '2014-08-08')
-#         self.assertEqual(str(d.datetime), '2014-08-08 14:10:53')
-#         self.assertEqual(d.decimal, 1.0)
-#         self.assertEqual(d.email, 'test@test.com')
-#         self.assertEqual(d.ip, '10.10.10.10')
-#         self.assertEqual(d.url, 'http://test.com')
+    def test_hstore_serializer_api_update(self):
+        view = SchemaDataBagViewSet.as_view(actions={'put': 'update'})
+
+        response = self.create_schema_data_bag()
+        self.assertIn('id', response.data)
+        bag_id = response.data['id']
+
+        request = self.factory.put(reverse('schemadatabag-detail', args=(bag_id,)), data={
+            "name": "test update",
+            "number": 5,
+            "float": 5.2,
+            "boolean": True,
+            "boolean_true": False,
+            "char": "char",
+            "text": "test update text",
+            "choice": "choice2",
+            "choice2": "choice1",
+            "date": "2014-08-08",
+            "datetime": "2014-08-08 14:10:53+00:00",
+            "decimal": 5.0,
+            "email": "test@test.com",
+            "ip": "10.10.10.10",
+            "url": "http://test.com"
+        })
+        response = view(request, pk=bag_id)
+        self.assertEqual(response.status_code, 200)
+
+        d = SchemaDataBag.objects.last()
+        self.assertEqual(d.name, 'test update')
+        self.assertEqual(d.number, 5)
+        self.assertEqual(d.float, 5.2)
+        self.assertEqual(d.boolean, True)
+        self.assertEqual(d.boolean_true, False)
+        self.assertEqual(d.char, 'char')
+        self.assertEqual(d.text, 'test update text')
+        self.assertEqual(d.choice, 'choice2')
+        self.assertEqual(d.choice2, 'choice1')
+        self.assertEqual(str(d.date), '2014-08-08')
+        self.assertEqual(str(d.datetime), '2014-08-08 14:10:53+00:00')
+        self.assertEqual(d.decimal, 5.0)
+        self.assertEqual(d.email, 'test@test.com')
+        self.assertEqual(d.ip, '10.10.10.10')
+        self.assertEqual(d.url, 'http://test.com')
 
     def test_hstore_serializer_api_create_default(self):
         response = self.client.post('/schemadatabag/', {

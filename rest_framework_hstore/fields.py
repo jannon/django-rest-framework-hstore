@@ -38,21 +38,3 @@ class HStoreField(Field):
         value = HStoreDict(value)
 
         return value
-
-    # Leave these in case we can achieve simultaneous DRF 2.4/3.0+ compatibility
-    def from_native(self, value):
-        if value:
-            try:
-                return HStoreDict(value)
-            except HStoreDictException as e:
-                raise ValidationError(_('Invalid JSON: %s' % e.json_error_message))
-        else:
-            return None
-
-    def to_native(self, value):
-        if isinstance(value, dict) or value is None:
-            return value
-
-        value = HStoreDict(value)
-
-        return value
