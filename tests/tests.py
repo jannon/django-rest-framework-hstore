@@ -6,9 +6,8 @@ from django.test import TestCase
 from .models import *
 from .serializers import *
 from django.core.urlresolvers import reverse
-from django.test.client import MULTIPART_CONTENT
 from rest_framework.test import APITestCase, APIRequestFactory
-from tests.views import SchemaDataBagViewSet
+from .views import SchemaDataBagViewSet
 
 
 class TestDjangoRestFrameworkHStore(TestCase):
