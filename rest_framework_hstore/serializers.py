@@ -1,7 +1,6 @@
 from django.db import models
-from django.forms import widgets
 
-from rest_framework.fields import *
+from rest_framework.fields import ChoiceField
 from rest_framework.serializers import ModelSerializer
 
 from django_hstore.fields import DictionaryField
@@ -36,6 +35,12 @@ class HStoreSerializer(ModelSerializer):
 
         if model_field.null or model_field.blank:
             kwargs['required'] = False
+
+            if model_field.null:
+                kwargs['allow_null'] = True
+            if model_field.blank and (issubclass(model_field.__class__, models.CharField) or
+                                      (issubclass(model_field.__class__, models.TextField))):
+                kwargs['allow_blank'] = True
 
         if isinstance(model_field, models.AutoField) or not model_field.editable:
             kwargs['read_only'] = True
