@@ -99,7 +99,7 @@ class TestDjangoRestFrameworkHStore(TestCase):
         self.assertEqual(s['ip'], '10.10.10.10')
         self.assertEqual(s['url'], 'http://test.com')
         # should be hidden
-        # self.assertTrue('data' not in s) # Why?
+        self.assertTrue('data' not in s)
 
     def test_hstore_serializer_validation(self):
         obj = SchemaDataBag()

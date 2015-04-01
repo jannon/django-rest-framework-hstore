@@ -2,25 +2,37 @@
 # -*- coding: utf-8 -*-
 
 from setuptools import setup
-import re
 import os
 import sys
 from rest_framework_hstore import get_version
+
+
+def get_install_requires():
+    """
+    parse requirements.txt, ignore links, exclude comments
+    """
+    requirements = []
+    for line in open('requirements.txt').readlines():
+        # skip to next iteration if comment or empty line
+        if line.startswith('#') or line == '' or line.startswith('http') or line.startswith('git'):
+            continue
+        # add line to requirements
+        requirements.append(line)
+    return requirements
 
 
 name = 'djangorestframework-hstore'
 package = 'rest_framework_hstore'
 description = 'Django Rest Framework tools for django-hstore'
 url = 'https://github.com/djangonauts/django-rest-framework-hstore'
+download_url = 'https://github.com/djangonauts/django-rest-framework-hstore/releases'
 author = 'Federico Capoano'
 author_email = 'django-rest-framework-hstore@googlegroups.com'
 license = 'BSD'
-install_requires = [
-    'djangorestframework',
-    'django_hstore>=1.3.1'
-]
-classifiers=[
-    'Development Status :: 3 - Alpha',
+install_requires = get_install_requires()
+platforms = ['Platform Indipendent']
+classifiers = [
+    'Development Status :: 4 - Beta',
     'Environment :: Web Environment',
     'Intended Audience :: Developers',
     'License :: OSI Approved :: BSD License',
@@ -29,7 +41,7 @@ classifiers=[
     'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
     'Framework :: Django',
     'Programming Language :: Python',
-    'Programming Language :: Python :: 2.6',
+    'Programming Language :: Python :: 2',
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.4',
@@ -74,6 +86,7 @@ setup(
     name=name,
     version=get_version(),
     url=url,
+    download_url=download_url,
     license=license,
     description=description,
     long_description=open('README.rst').read(),
@@ -83,5 +96,6 @@ setup(
     package_data=get_package_data(package),
     install_requires=install_requires,
     classifiers=classifiers,
+    platforms=platforms,
     zip_safe=False,
 )
